@@ -1,4 +1,8 @@
+#ifndef AVLTREE_H
+#define AVLTREE_H
+
 #include<vector>
+
 
 template<typename T>
 class AVLTree
@@ -20,20 +24,23 @@ class AVLTree
 		};
 	private:
 		Node *root;
-		void insertRecursive(Node* NodeToSearch, T element);
-		int getHeight(Node *nodePtr);
-		bool findRecursive(Node* NodeToSearch, T element);
-		void deleteNodes(Node* &nodeToRemove);
-		std::vector<T> preOrderRec(Node *noteToWalk);
-		void singleRotateRight(Node *&nodeToSearch);
-		void singleRotateLeft(Node *&nodeToSearch);
-		void doubleRotateRight(Node *&nodeToSearch);
-		void doubleRotateLeft(Node *&nodeToSearch);
+		void insertRecursive(Node* nodePtr, T element);
+		void removeRecursive(Node* &nodePtr, T element);
+		int getHeight(Node* nodePtr);
+		bool findRecursive(Node* nodePtr, T element);
+		void deleteNodes(Node* &nodePtr);
+		void preOrderRecursive(Node* nodeToWalk, std::vector<T> &preOrderVec);
+		void postOrderRecursive(Node* nodeToWalk, std::vector<T> &postOrderVec);
+		void inOrderRecursive(Node* nodeToWalk, std::vector<T> &inOrderVec);
+		void singleRotateRight(Node* &nodePtr);
+		void singleRotateLeft(Node* &nodePtr);
+		void doubleRotateRight(Node* &nodePtr);
+		void doubleRotateLeft(Node* &nodePtr);
 																																
 	public:
 		AVLTree(); //klar
 		void insert(T element); //klar
-		void remove(T element); 
+		void remove(T element); //klar
 		bool find(T element); //klar
 		std::vector<T> preOrderWalk();
 		std::vector<T> inOrderWalk();
@@ -52,61 +59,131 @@ class AVLTree
 
 //insert
 template<typename T>
-void AVLTree<T>::insertRecursive(Node* NodeToSearch, T element)
+void AVLTree<T>::insertRecursive(Node* nodePtr, T element)
 {
-	if(NodeToSearch == nullptr)
+	if(nodePtr == nullptr)
 	{
-		NodeToSearch = new Node(element);	
+		nodePtr = new Node(element);	
 	}
-	else if(NodeToSearch->value > element)
+	else if(nodePtr->value > element)
 	{
-		insertRecursive(NodeToSearch->leftChild, element);
-		if((NodeToSearch->leftChild->height - NodeToSearch->rightChild->height) == 2)
+		insertRecursive(nodePtr->leftChild, element);
+		if((nodePtr->leftChild->height - nodePtr->rightChild->height) == 2)
 		{
-			if(NodeToSearch->leftChild->value < element)
-				doubleRotateRight();
+			if(nodePtr->leftChild->value < element)
+				doubleRotateRight(nodePtr);
 			else
-				singleRotateRight();
+				singleRotateRight(nodePtr);
 		}
 	}
-	else if(NodeToSearch->value < element)
+	else if(nodePtr->value < element)
 	{
-		insertRecursive(NodeToSearch->rightChild, element);
-		if((NodeToSearch->rightChild->height - NodeToSearch->leftChild->height) == 2)
+		insertRecursive(nodePtr->rightChild, element);
+		if((nodePtr->rightChild->height - nodePtr->leftChild->height) == 2)
 		{
-			if(NodeToSearch->rightChild->value < element)
-				doubleRotateLeft();
+			if(nodePtr->rightChild->value < element)
+				doubleRotateLeft(nodePtr);
 			else
-				singleRotateLeft();
+				singleRotateLeft(nodePtr);
 		}
 	}
 	//setting height
-	if(NodeToSearch->leftChild->height < NodeToSearch->rightChild->height) 
-		NodeToSearch->height = NodeToSearch->rightChild->height + 1;
+	if(nodePtr->leftChild->height < nodePtr->rightChild->height) 
+		nodePtr->height = nodePtr->rightChild->height + 1;
 	else
-		NodeToSearch->height = NodeToSearch->leftChild->height + 1;
+		nodePtr->height = nodePtr->leftChild->height + 1;
+}
+
+//
+template<typename T>
+void AVLTree<T>::removeRecursive(Node* &nodePtr, T element)
+{
+	if(nodePtr != nullptr)
+	{
+		if(nodePtr->value == element)
+		{
+			Node *nodeToRemove = nodePtr;
+			if(nodePtr->leftChild != nullptr)
+				nodePtr = nodePtr->leftChild;
+			else
+				nodePtr = nodePtr->rightChild;
+			delete nodeToRemove;
+		}
+		else if(element < nodePtr->value)
+		{
+			removeRecursive(nodePtr->leftChild, element);
+		}
+		else if(element > nodePtr->value)
+		{
+			removeRecursive(nodePtr->rightChild, element);
+		}
+		else
+		{
+			Node *tempNode = nodePtr;
+			while(tempNode != nullptr)
+			{
+				tempNode = tempNode->leftChild;
+			}
+			nodePtr->value = tempNode->value;
+			removeRecursive(nodePtr->rightChild, element);
+		}
+	}
 }
 
 //find
 template<typename T>
-bool AVLTree<T>::findRecursive(Node* NodeToSearch, T element)
+bool AVLTree<T>::findRecursive(Node* nodePtr, T element)
 {
-	if(NodeToSearch == nullptr)
+	if(nodePtr == nullptr)
 	{
 		return false;	
 	}
-	else if(NodeToSearch->value > element)
+	else if(nodePtr->value > element)
 	{
-		return findRecursive(NodeToSearch->leftChild, element);
+		return findRecursive(nodePtr->leftChild, element);
 	}
-	else if(NodeToSearch->value < element)
+	else if(nodePtr->value < element)
 	{
-		return findRecursive(NodeToSearch->rightChild, element);
+		return findRecursive(nodePtr->rightChild, element);
 	}
 	else
 	{
 		return false;
 	}	
+}
+
+//preorder
+template<typename T>
+void AVLTree<T>::preOrderRecursive(Node* nodeToWalk, std::vector<T> &preOrderVec)
+{
+	if(nodeToWalk != nullptr)
+	{
+		preOrderVec.push_back(nodeToWalk->value);
+		preOrderRecursive(nodeToWalk->leftChild);
+		preOrderRecursive(nodeToWalk->rightChild);
+	}
+}
+
+template<typename T>
+void AVLTree<T>::postOrderRecursive(Node* nodeToWalk, std::vector<T> &postOrderVec)
+{
+	if(nodeToWalk != nullptr)
+	{
+		postOrderRecursive(nodeToWalk->leftChild);
+		postOrderRecursive(nodeToWalk->rightChild);
+		postOrderVec.push_back(nodeToWalk->value);
+	}
+}
+
+template<typename T>
+void AVLTree<T>::inOrderRecursive(Node* nodeToWalk, std::vector<T> &postOrderVec)
+{
+	if(nodeToWalk != nullptr)
+	{
+		inOrderRecursive(nodeToWalk->leftChild, postOrderVec);
+		postOrderVec.push_back(nodeToWalk->value);
+		inOrderRecursive(nodeToWalk->rightChild, postOrderVec);
+	}
 }
 
 //help functions
@@ -120,20 +197,88 @@ int AVLTree<T>::getHeight(Node *nodePtr)
 }
 
 template<typename T>
-void AVLTree<T>::deleteNodes(Node* &nodeToRemove)
+void AVLTree<T>::deleteNodes(Node* &nodePtr)
 {
-	if(nodeToRemove != nullptr)
+	if(nodePtr != nullptr)
 	{
-		if(nodeToRemove->leftChild != nullptr)
+		if(nodePtr->leftChild != nullptr)
 		{
-			deleteNodes(nodeToRemove->leftChild);
+			deleteNodes(nodePtr->leftChild);
 		}
-		if(nodeToRemove->rightChild != nullptr)
+		if(nodePtr->rightChild != nullptr)
 		{
-			deleteNodes(nodeToRemove->rightChild);
+			deleteNodes(nodePtr->rightChild);
 		}
-		delete nodeToRemove;
+		delete nodePtr;
 	}
+}
+
+//balancing
+template<typename T>
+void AVLTree<T>::singleRotateLeft(Node* &nodePtr)
+{
+	Node *tempNode = nodePtr->rightChild;
+	nodePtr->rightChild = tempNode->leftChild;
+	tempNode->leftChild = nodePtr;
+	if(nodePtr->leftChild->height > nodePtr->rightChild->height)
+	{
+		nodePtr->height = nodePtr->leftChild->height + 1;
+	}
+	else
+	{
+		nodePtr->height = nodePtr->rightChild->height + 1;
+	}
+
+	if(tempNode->leftChild->height > tempNode->rightChild->height)
+	{
+		tempNode->height = tempNode->leftChild->height + 1;
+	}
+	else
+	{
+		tempNode->height = tempNode->rightChild->height + 1;
+	}
+	nodePtr = tempNode;	 
+}
+
+template<typename T>
+void AVLTree<T>::singleRotateRight(Node* &nodePtr)
+{
+	Node *tempNode = nodePtr->leftChild;
+	nodePtr->leftChild = tempNode->rightChild;
+	tempNode->rightChild = nodePtr;
+	//updating height
+	if(nodePtr->leftChild->height > nodePtr->rightChild->height)
+	{
+		nodePtr->height = nodePtr->leftChild->height + 1;
+	}
+	else
+	{
+		nodePtr->height = nodePtr->rightChild->height + 1;
+	}
+
+	if(tempNode->leftChild->height > tempNode->rightChild->height)
+	{
+		tempNode->height = tempNode->leftChild->height + 1;
+	}
+	else
+	{
+		tempNode->height = tempNode->rightChild->height + 1;
+	}
+	nodePtr = tempNode;
+}
+
+template<typename T>
+void AVLTree<T>::doubleRotateLeft(Node* &nodePtr)
+{
+	singleRotateRight(nodePtr->rightChild);
+	singleRotateLeft(nodePtr);
+}
+
+template<typename T>
+void AVLTree<T>::doubleRotateRight(Node* &nodePtr)
+{
+	singleRotateLeft(nodePtr->leftChild);
+	singleRotateRight(nodePtr);
 }
 
 
@@ -154,12 +299,37 @@ void AVLTree<T>::insert(T element)
 template<typename T>
 bool AVLTree<T>::find(T element)
 {
-	return findNodeRecursive(this->root, element);
+	return findRecursive(this->root, element);
 }
 
 template<typename T>
 void AVLTree<T>::remove(T element)
 {
+	removeRecursive(root, element);
+}
+
+template<typename T>
+std::vector<T> AVLTree<T>::preOrderWalk()
+{
+	std::vector<T> preOrderVec;
+	preOrderRecursive(root, preOrderVec);
+	return preOrderVec;
+}
+
+template<typename T>
+std::vector<T> AVLTree<T>::postOrderWalk()
+{
+	std::vector<T> postOrderVec;
+	postOrderRecursive(root,postOrderVec);
+	return postOrderVec;
+}
+
+template<typename T>
+std::vector<T> AVLTree<T>::inOrderWalk()
+{
+	std::vector<T> inOrderVec;
+	inOrderRecursive(root, inOrderVec);
+	return inOrderVec;
 
 }
 
@@ -170,12 +340,12 @@ T AVLTree<T>::getMin()
 	{
 		throw "Empty tree";
 	}
-	Node *nodeToSearch = this->root;
-	while(nodeToSearch->leftChild != nullptr)
+	Node *nodePtr = this->root;
+	while(nodePtr->leftChild != nullptr)
 	{
-		nodeToSearch = nodeToSearch->leftChild;
+		nodePtr = nodePtr->leftChild;
 	}
-	return nodeToSearch->value;
+	return nodePtr->value;
 }
 
 template<typename T>
@@ -185,12 +355,12 @@ T AVLTree<T>::getMax()
 	{
 		throw "Empty tree";
 	}
-	Node *nodeToSearch = this->root;
-	while(nodeToSearch->rightChild != nullptr)
+	Node *nodePtr = this->root;
+	while(nodePtr->rightChild != nullptr)
 	{
-		nodeToSearch = nodeToSearch->rightChild;
+		nodePtr = nodePtr->rightChild;
 	}
-	return nodeToSearch->value;
+	return nodePtr->value;
 }
 
 template<typename T>
@@ -257,3 +427,4 @@ void AVLTree<T>::ToGraphvizHelper(std::string& listOfNodes, std::string& listOfC
 	}
 }
 
+#endif
