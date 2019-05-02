@@ -1,8 +1,8 @@
 #ifndef AVLTREE_H
 #define AVLTREE_H
 
-#include<vector>
-
+#include <vector>
+#include <string>
 
 template<typename T>
 class AVLTree
@@ -10,6 +10,10 @@ class AVLTree
 	private:
 		struct Node
 		{
+			Node* rightChild;
+			Node* leftChild;
+			T value;
+			size_t height;
 			Node(T element)
 			{
 				value = element;
@@ -17,14 +21,10 @@ class AVLTree
 				rightChild = nullptr;
 				leftChild = nullptr;
 			}
-			Node* rightChild;
-			Node* leftChild;
-			T value;
-			size_t height;
 		};
 	private:
 		Node *root;
-		void insertRecursive(Node* nodePtr, T element);
+		void insertRecursive(Node* &nodePtr, const T &element);
 		void removeRecursive(Node* &nodePtr, T element);
 		int getHeight(Node* nodePtr);
 		bool findRecursive(Node* nodePtr, T element);
@@ -36,107 +36,177 @@ class AVLTree
 		void singleRotateLeft(Node* &nodePtr);
 		void doubleRotateRight(Node* &nodePtr);
 		void doubleRotateLeft(Node* &nodePtr);
+		void balancing(Node* &nodePtr);
+		T& findMin(Node*) const;
+		
+		void ToGraphvizHelper(std::string& listOfNodes, std::string& listOfConnections, Node* toWorkWith, size_t& uniqueID) // Member function of the AVLTree class
+		{
+			size_t myID = uniqueID;
+			listOfNodes += std::string("\t") + std::to_string(myID) + std::string(" [label=\"") + std::to_string(toWorkWith->value) + std::string("\"];\n");
+			if(toWorkWith->leftChild)
+			{
+				listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID + 1) + std::string(" [color=blue];\n");
+				ToGraphvizHelper(listOfNodes, listOfConnections, toWorkWith->leftChild, ++uniqueID);
+			}
+			else
+			{
+				listOfNodes += std::string("\t") + std::to_string(++uniqueID) + std::string(" [label=") + std::string("nill, style = invis];\n");
+				listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID) + std::string(" [ style = invis];\n");
+			}
+					
+			if(toWorkWith->rightChild)
+			{
+				listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID + 1) + std::string(" [color=red];\n");
+				ToGraphvizHelper(listOfNodes, listOfConnections, toWorkWith->rightChild, ++uniqueID);
+			}
+			else
+			{
+				listOfNodes += std::string("\t") + std::to_string(++uniqueID) + std::string(" [label=") + std::string("nill, style = invis];\n");
+				listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID) + std::string(" [ style = invis];\n");
+			}
+		}
 																																
 	public:
 		AVLTree(); //klar
-		void insert(T element); //klar
+		void insert(const T &element); //klar
 		void remove(T element); //klar
 		bool find(T element); //klar
 		std::vector<T> preOrderWalk();
 		std::vector<T> inOrderWalk();
 		std::vector<T> postOrderWalk();
 		size_t getTreeHeight(); //klar
-		T getMin(); //klar
-		T getMax();	//klar
+		T &getMin() const; //klar
+		T &getMax() const;	//klar
 		~AVLTree(); //klar
 
 		//Functions that was given out for the assignment
-		std::string ToGraphviz(); // Member function of the AVLTree class
-		void ToGraphvizHelper(std::string& listOfNodes, std::string& listOfConnections, Node* toWorkWith, size_t& uniqueID); // Member function of the AVLTree class
+		std::string ToGraphviz() // Member function of the AVLTree class
+		{
+			std::string toReturn = "";
+			if(root) // root is a pointer to the root node of the tree
+			{
+				std::string listOfNodes;
+				std::string listOfConnections = std::string("\t\"Root\" -> ") + std::to_string(0) + std::string(";\n");
+				toReturn += std::string("digraph {\n");
+				size_t id = 0;
+				ToGraphvizHelper(listOfNodes, listOfConnections, root, id);
+				toReturn += listOfNodes;
+				toReturn += listOfConnections;
+				toReturn += std::string("}");
+			}
+			return toReturn;
+		}
 };
 
 /*private functions*/
 
 //insert
 template<typename T>
-void AVLTree<T>::insertRecursive(Node* nodePtr, T element)
+void AVLTree<T>::insertRecursive(Node* &nodePtr, const T &element)
 {
 	if(nodePtr == nullptr)
 	{
 		nodePtr = new Node(element);	
 	}
-	else if(nodePtr->value > element)
+	else if(element < nodePtr->value)
 	{
 		insertRecursive(nodePtr->leftChild, element);
-		if((nodePtr->leftChild->height - nodePtr->rightChild->height) == 2)
-		{
-			if(nodePtr->leftChild->value < element)
-				doubleRotateRight(nodePtr);
-			else
-				singleRotateRight(nodePtr);
-		}
+		
 	}
-	else if(nodePtr->value < element)
+	else if(element > nodePtr->value)
 	{
 		insertRecursive(nodePtr->rightChild, element);
-		if((nodePtr->rightChild->height - nodePtr->leftChild->height) == 2)
+		
+	}
+
+	balancing(nodePtr);
+
+
+	/*if((getHeight(nodePtr->leftChild) - getHeight(nodePtr->rightChild)) >= 2)
+		{
+			if(nodePtr->leftChild->value > element)
+				singleRotateRight(nodePtr);
+			else
+				doubleRotateRight(nodePtr);
+		}
+	
+	if((getHeight(nodePtr->rightChild) - getHeight(nodePtr->leftChild)) >= 2)
 		{
 			if(nodePtr->rightChild->value < element)
-				doubleRotateLeft(nodePtr);
-			else
 				singleRotateLeft(nodePtr);
-		}
-	}
+			else
+				doubleRotateLeft(nodePtr);
+		}*/
 	//setting height
-	if(nodePtr->leftChild->height < nodePtr->rightChild->height) 
-		nodePtr->height = nodePtr->rightChild->height + 1;
-	else
-		nodePtr->height = nodePtr->leftChild->height + 1;
+	
+	
 }
 
-//
+template<typename T>
+void AVLTree<T>::balancing(Node* &nodePtr)
+{
+	if(nodePtr == nullptr)
+		return;
+	
+	if((getHeight(nodePtr->leftChild) - getHeight(nodePtr->rightChild)) > 1)
+	{
+		if(getHeight(nodePtr->leftChild->leftChild) >= getHeight(nodePtr->leftChild->rightChild))
+			singleRotateRight(nodePtr);
+		else
+			doubleRotateRight(nodePtr);
+	}
+
+	else if((getHeight(nodePtr->rightChild) - getHeight(nodePtr->leftChild)) > 1)
+	{
+		if(getHeight(nodePtr->rightChild->rightChild) >= getHeight(nodePtr->rightChild->leftChild))
+			singleRotateLeft(nodePtr);
+		else
+			doubleRotateLeft(nodePtr);
+	}
+
+	nodePtr->height = std::max(getHeight(nodePtr->leftChild), getHeight(nodePtr->rightChild)) + 1;
+	
+}
+
 template<typename T>
 void AVLTree<T>::removeRecursive(Node* &nodePtr, T element)
 {
-	if(nodePtr != nullptr)
+	if(nodePtr == nullptr)
+		return;
+	
+	if(element < nodePtr->value)
+		removeRecursive(nodePtr->leftChild, element);
+	else if(element > nodePtr->value)
+		removeRecursive(nodePtr->rightChild, element);
+	else if(nodePtr->leftChild != nullptr && nodePtr->rightChild != nullptr)
 	{
-		if(nodePtr->value == element)
-		{
-			Node *nodeToRemove = nodePtr;
-			if(nodePtr->leftChild != nullptr)
-				nodePtr = nodePtr->leftChild;
-			else
-				nodePtr = nodePtr->rightChild;
-			delete nodeToRemove;
-		}
-		else if(element < nodePtr->value)
-		{
-			removeRecursive(nodePtr->leftChild, element);
-		}
-		else if(element > nodePtr->value)
-		{
-			removeRecursive(nodePtr->rightChild, element);
-		}
-		else
-		{
-			Node *tempNode = nodePtr;
-			while(tempNode != nullptr)
-			{
-				tempNode = tempNode->leftChild;
-			}
-			nodePtr->value = tempNode->value;
-			removeRecursive(nodePtr->rightChild, element);
-		}
+		nodePtr->value = findMin(nodePtr->rightChild);
+		removeRecursive(nodePtr->rightChild, nodePtr->value);
 	}
+	else
+	{
+		Node *nodeToRemove = nodePtr;
+		if(nodePtr->leftChild != nullptr)
+			nodePtr = nodePtr->leftChild;
+		else
+			nodePtr = nodePtr->rightChild;
+		delete nodeToRemove;
+	}
+	balancing(nodePtr);
 }
 
 //find
 template<typename T>
 bool AVLTree<T>::findRecursive(Node* nodePtr, T element)
 {
+	
 	if(nodePtr == nullptr)
 	{
-		return false;	
+		return false;
+	}
+	if(nodePtr->value == element)
+	{
+		return true;	
 	}
 	else if(nodePtr->value > element)
 	{
@@ -146,10 +216,7 @@ bool AVLTree<T>::findRecursive(Node* nodePtr, T element)
 	{
 		return findRecursive(nodePtr->rightChild, element);
 	}
-	else
-	{
-		return false;
-	}	
+	return false;
 }
 
 //preorder
@@ -159,9 +226,9 @@ void AVLTree<T>::preOrderRecursive(Node* nodeToWalk, std::vector<T> &preOrderVec
 	if(nodeToWalk != nullptr)
 	{
 		preOrderVec.push_back(nodeToWalk->value);
-		preOrderRecursive(nodeToWalk->leftChild);
-		preOrderRecursive(nodeToWalk->rightChild);
-	}
+		preOrderRecursive(nodeToWalk->leftChild, preOrderVec);
+		preOrderRecursive(nodeToWalk->rightChild, preOrderVec);
+	}	
 }
 
 template<typename T>
@@ -169,20 +236,20 @@ void AVLTree<T>::postOrderRecursive(Node* nodeToWalk, std::vector<T> &postOrderV
 {
 	if(nodeToWalk != nullptr)
 	{
-		postOrderRecursive(nodeToWalk->leftChild);
-		postOrderRecursive(nodeToWalk->rightChild);
+		postOrderRecursive(nodeToWalk->leftChild, postOrderVec);
+		postOrderRecursive(nodeToWalk->rightChild, postOrderVec);
 		postOrderVec.push_back(nodeToWalk->value);
 	}
 }
 
 template<typename T>
-void AVLTree<T>::inOrderRecursive(Node* nodeToWalk, std::vector<T> &postOrderVec)
+void AVLTree<T>::inOrderRecursive(Node* nodeToWalk, std::vector<T> &inOrderVec)
 {
 	if(nodeToWalk != nullptr)
 	{
-		inOrderRecursive(nodeToWalk->leftChild, postOrderVec);
-		postOrderVec.push_back(nodeToWalk->value);
-		inOrderRecursive(nodeToWalk->rightChild, postOrderVec);
+		inOrderRecursive(nodeToWalk->leftChild, inOrderVec);
+		inOrderVec.push_back(nodeToWalk->value);
+		inOrderRecursive(nodeToWalk->rightChild, inOrderVec);
 	}
 }
 
@@ -193,7 +260,7 @@ int AVLTree<T>::getHeight(Node *nodePtr)
 	if(nodePtr == nullptr)
 		return -1;
 	else 
-		return static_cast<int>(nodePtr->height);
+		return nodePtr->height;
 }
 
 template<typename T>
@@ -213,6 +280,18 @@ void AVLTree<T>::deleteNodes(Node* &nodePtr)
 	}
 }
 
+template<typename T>
+T& AVLTree<T>::findMin(Node* nodePtr) const 
+{
+	if(nodePtr == nullptr)
+		throw "empty tree";
+	else if(nodePtr->leftChild == nullptr)
+		return nodePtr->value;
+	else
+		return findMin(nodePtr->leftChild);
+	
+}
+
 //balancing
 template<typename T>
 void AVLTree<T>::singleRotateLeft(Node* &nodePtr)
@@ -220,23 +299,25 @@ void AVLTree<T>::singleRotateLeft(Node* &nodePtr)
 	Node *tempNode = nodePtr->rightChild;
 	nodePtr->rightChild = tempNode->leftChild;
 	tempNode->leftChild = nodePtr;
-	if(nodePtr->leftChild->height > nodePtr->rightChild->height)
+	nodePtr->height = std::max(getHeight(nodePtr->leftChild), getHeight(nodePtr->rightChild)) + 1;
+	tempNode->height = std::max(getHeight(nodePtr->rightChild), getHeight(nodePtr)) + 1;
+	/*if(getHeight(nodePtr->leftChild) > getHeight(nodePtr->rightChild))
 	{
-		nodePtr->height = nodePtr->leftChild->height + 1;
+		nodePtr->height = getHeight(nodePtr->leftChild) + 1;
 	}
 	else
 	{
-		nodePtr->height = nodePtr->rightChild->height + 1;
+		nodePtr->height = getHeight(nodePtr->rightChild) + 1;
 	}
 
-	if(tempNode->leftChild->height > tempNode->rightChild->height)
+	if(getHeight(nodePtr->rightChild) > getHeight(nodePtr))
 	{
-		tempNode->height = tempNode->leftChild->height + 1;
+		tempNode->height = getHeight(nodePtr->rightChild) + 1;
 	}
 	else
 	{
-		tempNode->height = tempNode->rightChild->height + 1;
-	}
+		tempNode->height = getHeight(nodePtr) + 1;
+	}*/
 	nodePtr = tempNode;	 
 }
 
@@ -247,23 +328,25 @@ void AVLTree<T>::singleRotateRight(Node* &nodePtr)
 	nodePtr->leftChild = tempNode->rightChild;
 	tempNode->rightChild = nodePtr;
 	//updating height
-	if(nodePtr->leftChild->height > nodePtr->rightChild->height)
+	nodePtr->height = std::max(getHeight(nodePtr->leftChild), getHeight(nodePtr->rightChild)) + 1;
+	tempNode->height = std::max(getHeight(tempNode->leftChild), getHeight(nodePtr)) + 1;
+	/*if(getHeight(nodePtr->leftChild) > getHeight(nodePtr->rightChild))
 	{
-		nodePtr->height = nodePtr->leftChild->height + 1;
+		nodePtr->height = getHeight(nodePtr->leftChild) + 1;
 	}
 	else
 	{
-		nodePtr->height = nodePtr->rightChild->height + 1;
+		nodePtr->height = getHeight(nodePtr->rightChild) + 1;
 	}
 
-	if(tempNode->leftChild->height > tempNode->rightChild->height)
+	if(getHeight(tempNode->leftChild) > getHeight(nodePtr))
 	{
-		tempNode->height = tempNode->leftChild->height + 1;
+		tempNode->height = getHeight(tempNode->leftChild) + 1;
 	}
 	else
 	{
-		tempNode->height = tempNode->rightChild->height + 1;
-	}
+		tempNode->height = getHeight(nodePtr) + 1;
+	}*/
 	nodePtr = tempNode;
 }
 
@@ -291,7 +374,7 @@ AVLTree<T>::AVLTree()
 }
 
 template<typename T>
-void AVLTree<T>::insert(T element)
+void AVLTree<T>::insert(const T &element)
 {
 	insertRecursive(this->root, element);
 }
@@ -334,22 +417,13 @@ std::vector<T> AVLTree<T>::inOrderWalk()
 }
 
 template<typename T>
-T AVLTree<T>::getMin()
+T &AVLTree<T>::getMin() const
 {
-	if(this->root == nullptr)
-	{
-		throw "Empty tree";
-	}
-	Node *nodePtr = this->root;
-	while(nodePtr->leftChild != nullptr)
-	{
-		nodePtr = nodePtr->leftChild;
-	}
-	return nodePtr->value;
+	return findMin(root);
 }
 
 template<typename T>
-T AVLTree<T>::getMax()
+T &AVLTree<T>::getMax() const
 {
 	if(this->root == nullptr)
 	{
@@ -377,54 +451,6 @@ template<typename T>
 AVLTree<T>::~AVLTree()
 {
 	deleteNodes(this->root);
-}
-
-/*Functions from assignment*/
-
-template<typename T>
-std::string AVLTree<T>::ToGraphviz() // Member function of the AVLTree class
-{
-	std::string toReturn = "";
-	if(root) // root is a pointer to the root node of the tree
-	{
-		std::string listOfNodes;
-		std::string listOfConnections = std::string("\t\"Root\" -> ") + std::to_string(0) + std::string(";\n");
-		toReturn += std::string("digraph {\n");
-		size_t id = 0;
-		ToGraphvizHelper(listOfNodes, listOfConnections, root, id);
-		toReturn += listOfNodes;
-		toReturn += listOfConnections;
-		toReturn += std::string("}");
-	}
-	return std::move(toReturn);
-}
-
-template<typename T>
-void AVLTree<T>::ToGraphvizHelper(std::string& listOfNodes, std::string& listOfConnections, Node* toWorkWith, size_t& uniqueID) // Member function of the AVLTree class
-{
-	size_t myID = uniqueID;
-	listOfNodes += std::string("\t") + std::to_string(myID) + std::string(" [label=\"") + std::to_string(toWorkWith->element) + std::string("\"];\n");
-	if(toWorkWith->leftChild)
-	{
-		listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID + 1) + std::string(" [color=blue];\n");
-		ToGraphvizHelper(listOfNodes, listOfConnections, toWorkWith->leftChild, ++uniqueID);
-	}
-	else
-	{
-		listOfNodes += std::string("\t") + std::to_string(++uniqueID) + std::string(" [label=") + std::string("nill, style = invis];\n");
-		listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID) + std::string(" [ style = invis];\n");
-	}
-			
-	if(toWorkWith->rightChild)
-	{
-		listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID + 1) + std::string(" [color=red];\n");
-		ToGraphvizHelper(listOfNodes, listOfConnections, toWorkWith->rightChild, ++uniqueID);
-	}
-	else
-	{
-		listOfNodes += std::string("\t") + std::to_string(++uniqueID) + std::string(" [label=") + std::string("nill, style = invis];\n");
-		listOfConnections += std::string("\t") + std::to_string(myID) + std::string(" -> ") + std::to_string(uniqueID) + std::string(" [ style = invis];\n");
-	}
 }
 
 #endif
