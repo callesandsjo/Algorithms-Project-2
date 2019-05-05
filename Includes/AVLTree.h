@@ -69,15 +69,15 @@ class AVLTree
 	public:
 		AVLTree(); //klar
 		void insert(const T &element); //klar
-		void remove(T element); //klar
-		bool find(T element); //klar
+		void remove(T element); 
+		bool find(T element); 
 		std::vector<T> preOrderWalk();
 		std::vector<T> inOrderWalk();
 		std::vector<T> postOrderWalk();
-		size_t getTreeHeight(); //klar
-		T &getMin() const; //klar
-		T &getMax() const;	//klar
-		~AVLTree(); //klar
+		size_t getTreeHeight(); 
+		T &getMin() const; 
+		T &getMax() const;
+		~AVLTree(); 
 
 		//Functions that was given out for the assignment
 		std::string ToGraphviz() // Member function of the AVLTree class
@@ -111,35 +111,27 @@ void AVLTree<T>::insertRecursive(Node* &nodePtr, const T &element)
 	else if(element < nodePtr->value)
 	{
 		insertRecursive(nodePtr->leftChild, element);
-		
-	}
-	else if(element > nodePtr->value)
-	{
-		insertRecursive(nodePtr->rightChild, element);
-		
-	}
-
-	balancing(nodePtr);
-
-
-	/*if((getHeight(nodePtr->leftChild) - getHeight(nodePtr->rightChild)) >= 2)
+		if(getHeight(nodePtr->leftChild) - getHeight(nodePtr->rightChild) > 1)
 		{
 			if(nodePtr->leftChild->value > element)
 				singleRotateRight(nodePtr);
 			else
 				doubleRotateRight(nodePtr);
 		}
-	
-	if((getHeight(nodePtr->rightChild) - getHeight(nodePtr->leftChild)) >= 2)
+	}
+	else if(element > nodePtr->value)
+	{
+		insertRecursive(nodePtr->rightChild, element);
+		if(getHeight(nodePtr->rightChild) - getHeight(nodePtr->leftChild) > 1)
 		{
 			if(nodePtr->rightChild->value < element)
 				singleRotateLeft(nodePtr);
 			else
-				doubleRotateLeft(nodePtr);
-		}*/
-	//setting height
-	
-	
+				doubleRotateLeft(nodePtr);	
+		}
+		
+	}
+	nodePtr->height = std::max(getHeight(nodePtr->leftChild), getHeight(nodePtr->rightChild)) + 1;
 }
 
 template<typename T>
@@ -171,28 +163,28 @@ void AVLTree<T>::balancing(Node* &nodePtr)
 template<typename T>
 void AVLTree<T>::removeRecursive(Node* &nodePtr, T element)
 {
-	if(nodePtr == nullptr)
-		return;
-	
-	if(element < nodePtr->value)
-		removeRecursive(nodePtr->leftChild, element);
-	else if(element > nodePtr->value)
-		removeRecursive(nodePtr->rightChild, element);
-	else if(nodePtr->leftChild != nullptr && nodePtr->rightChild != nullptr)
+	if(nodePtr != nullptr)
 	{
-		nodePtr->value = findMin(nodePtr->rightChild);
-		removeRecursive(nodePtr->rightChild, nodePtr->value);
-	}
-	else
-	{
-		Node *nodeToRemove = nodePtr;
-		if(nodePtr->leftChild != nullptr)
-			nodePtr = nodePtr->leftChild;
+		if(element < nodePtr->value)
+			removeRecursive(nodePtr->leftChild, element);
+		else if(element > nodePtr->value)
+			removeRecursive(nodePtr->rightChild, element);
+		else if(nodePtr->leftChild != nullptr && nodePtr->rightChild != nullptr)
+		{
+			nodePtr->value = findMin(nodePtr->rightChild);
+			removeRecursive(nodePtr->rightChild, nodePtr->value);
+		}
 		else
-			nodePtr = nodePtr->rightChild;
-		delete nodeToRemove;
+		{
+			Node *nodeToRemove = nodePtr;
+			if(nodePtr->leftChild != nullptr)
+				nodePtr = nodePtr->leftChild;
+			else
+				nodePtr = nodePtr->rightChild;
+			delete nodeToRemove;
+		}
+		balancing(nodePtr);
 	}
-	balancing(nodePtr);
 }
 
 //find
